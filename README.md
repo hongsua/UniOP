@@ -1,2 +1,2 @@
-# UniOP
-A fast, memory-efficient, and accurate operon prediction tool. 
+# Introduction
+UniOP is a fast and accurate computational method for systematic operon prediction. It is designed to work without any experimental or functional data, which is required by most of existing methods and considerably limits the application of these methods. UniOP is only based on two types of data sources: the intergenic distance between two adjacent genes and the conservation of neighborhood and strandedness with related genomes. 
