@@ -1,5 +1,5 @@
 # UniOP: self-supervised universal operon prediction for prokaryotic (meta-)genomics data
-The manuscript is in preparation.
+The manuscript is currently being prepared.
 
 ## Overview
 We present UniOP, a fast and accurate computational method for operon prediction, independent of experimental information or functional information. UniOP takes as input one or more prokaryotic genomes or metagenomic assembled genomes (MAGs), utilizing the features extracted solely from genomic sequence. These features include:
