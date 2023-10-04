@@ -12,4 +12,4 @@ We estimate the probability of adjacent gene pairs belonging to the same operon 
 ## Installation
 
 ## Input
-The starting point is either (1) a FASTA file of the nucleotide genome sequence (`.fna`) or protein-coding sequences (**CDS**) (`.faa`)(typically by running a gene prediction program like [Prodigal](https://github.com/hyattpd/Prodigal))
+The starting point is either a FASTA file of the nucleotide genome sequence (`.fna`) or protein-coding sequences (**CDS**) (`.faa`)(typically by running a gene prediction program like [Prodigal](https://github.com/hyattpd/Prodigal))
