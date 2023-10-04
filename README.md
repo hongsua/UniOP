@@ -2,7 +2,7 @@
 The manuscript is currently being prepared.
 
 ## Overview
-We present UniOP, a fast and accurate computational method for operon prediction, independent of experimental information or functional information. UniOP takes as input one or more prokaryotic genomes or metagenomic assembled genomes (MAGs), utilizing the features extracted solely from genomic sequence. These features include:
+We present **UniOP**, a fast and accurate computational method for operon prediction, independent of experimental information or functional information. UniOP takes as input one or more prokaryotic genomes or metagenomic assembled genomes (MAGs), utilizing the features extracted solely from genomic sequence. These features include:
 (i) transcription co-directionality;
 (ii) intergenic distances; 
 (iii) conserved gene neighborhood. 
