@@ -12,10 +12,13 @@ We present **UniOP**, a fast and accurate computational method for operon predic
 ## Installation
 ### Prerequisites
 **UniOP** requires:
-          * Python (?+)
-          * Prodigal [https://github.com/hyattpd/Prodigal/wiki/installation]
-          * spacedust [https://github.com/soedinglab/spacedust]
-          * mash [https://github.com/marbl/mash]
+
+* Python3
+* Tensorflow
+* Prodigal [https://github.com/hyattpd/Prodigal/wiki/installation]
+* spacedust [https://github.com/soedinglab/spacedust]
+* mash [https://github.com/marbl/mash]
+
 
 ## Input
 The starting point is either a FASTA file of the nucleotide genome sequence (`.fna`) or protein-coding sequences (**CDS**) (`.faa`)(typically by running a gene prediction program like [Prodigal](https://github.com/hyattpd/Prodigal))
