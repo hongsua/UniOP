@@ -1,0 +1,8 @@
+species				refseq	
+Escherichia-coli		GCF_000005845.2
+Bacillus-subtilis		GCF_000009045.1
+Campylobacter-jejuni		GCF_000011865.1
+Mycobacterium-tuberculosis	GCF_000016965.1
+Sinorhizobium-meliloti		GCF_000346065.1
+Eggerthella-lenta		GCF_000024265.1
+Synechoccus-elongatus		GCF_000012525.1
