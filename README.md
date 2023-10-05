@@ -34,12 +34,11 @@ cd UniOP-main/src
 ```
 ### operon prediction based on intergenic distance only
 ```
-python3 UniOP_dst.py -a ../demo/GCF_000005845.2.fna
+python3 UniOP_dst.py -a ../demo/GCF_000005845.2.faa
 ```
 ### operon prediction based on intergenic distance and conserved adjacent gene pairs
-The reference genomes selection is required first.
 ```
-python3 refs_selection.py -a ../demo/GCF_000005845.2.fna -db_dir 
+python3 UniOP.py -a ../demo/GCF_000005845.2.faa -db_msh ../data/ncbi_reference.msh -db_pred /home/hongsu/databases/ncbi_dataset/dist_prediction
 ```
 
 
