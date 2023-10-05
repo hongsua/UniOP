@@ -27,7 +27,9 @@ Install from PyPi::
 pip install UniOP
 ```
 Install from the source::
-
+```
+unzip UniOP-main.zip
+```
 
 
 
