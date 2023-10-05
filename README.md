@@ -12,20 +12,20 @@ We present **UniOP**, a fast and accurate computational method for operon predic
 ## Installation
 ### Prerequisites
 **UniOP** requires:
-
+```
 * Python3
 * Tensorflow (2.12.0+)
 * Prodigal [https://github.com/hyattpd/Prodigal/wiki/installation]
 * spacedust [https://github.com/soedinglab/spacedust]
 * mash [https://github.com/marbl/mash]
-
+```
 ### Install UniOP
 You can install UniOP either from PyPi using pip or install it from the source. Please make sure you have already installed the above mentioned python libraries required to run UniOP.
 
 Install from PyPi::
-
+```
 pip install UniOP
-
+```
 Install from the source::
 
 
