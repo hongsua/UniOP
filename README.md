@@ -14,7 +14,7 @@ We present **UniOP**, a fast and accurate computational method for operon predic
 **UniOP** requires:
 
 * Python3
-* Tensorflow
+* Tensorflow (2.12.0+)
 * Prodigal [https://github.com/hyattpd/Prodigal/wiki/installation]
 * spacedust [https://github.com/soedinglab/spacedust]
 * mash [https://github.com/marbl/mash]
