@@ -19,6 +19,17 @@ We present **UniOP**, a fast and accurate computational method for operon predic
 * spacedust [https://github.com/soedinglab/spacedust]
 * mash [https://github.com/marbl/mash]
 
+### Install UniOP
+You can install UniOP either from PyPi using pip or install it from the source. Please make sure you have already installed the above mentioned python libraries required to run UniOP.
+
+Install from PyPi::
+
+pip install UniOP
+
+Install from the source::
+
+
+
 
 ## Input
 The starting point is either a FASTA file of the nucleotide genome sequence (`.fna`) or protein-coding sequences (**CDS**) (`.faa`)(typically by running a gene prediction program like [Prodigal](https://github.com/hyattpd/Prodigal))
