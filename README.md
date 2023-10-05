@@ -23,6 +23,24 @@ UniOP requires the installation of [Prodigal](https://github.com/hyattpd/Prodiga
 ```
 bash environment.sh
 ```
+### Install UniOP
+```
+wget https://github.com/hongsua/UniOP/archive/refs/heads/main.zip
+unzip main.zip
+```
+## Usage
+```
+cd UniOP-main/src
+```
+### operon prediction based on intergenic distance only
+```
+python3 UniOP_dst.py -a ../demo/GCF_000005845.2.fna
+```
+### operon prediction based on intergenic distance and conserved adjacent gene pairs
+The reference genomes selection is required first.
+```
+python3 refs_selection.py -a ../demo/GCF_000005845.2.fna -db_dir 
+```
 
 
 
