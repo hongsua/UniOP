@@ -21,7 +21,7 @@ def create_parser():
 	get command line arguments
 	'''
 	parser = argparse.ArgumentParser(description='Operon prediction using intergenic distance and conservation of adjacent gene pairs.',
-									 epilog="""An example:\npython3 UniOP_dst.py -a ../demo/GCF_000005845.2.faa\n""")
+									 epilog="""An example:\npython3 UniOP_dst.py -i ../demo/GCF_000005845.2.fna\n""")
 	parser.add_argument('-i','--fna_file',required=False,help='fasta genome sequence.')
 	parser.add_argument('-a','--faa_file',required=False,help='fasta amino acids sequence predicted by Prodigal.')
 	parser.add_argument('-t','--path',required=False,help='optional folder path where output files go (if not specified, the input file path is used)')
@@ -218,7 +218,9 @@ def main():
 				# the input path is used as the output path is not specified
 				head, tail = os.path.split(fna_file) 
 				data_path = head
+			start_prod = datetime.now()
 			faa_file = gene_prediction(fna_file, path=data_path)
+			print(f"Time for gene prediction by Prodigal: {datetime.now() - start_prod}")
 		else:
 			raise ValueError('Please specify the input file, either faa file or fna file')
 	# predict operons
