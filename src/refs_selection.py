@@ -17,7 +17,7 @@ def get_parser():
 	parser.add_argument('-db_dir','--ref_db',required=True,help='required folder path where all reference genomes are located.')
 	parser.add_argument('-db_lst','--ref_db_lst',required=True,help='required list where all reference genomes contain absolute paths.')
 	parser.add_argument('-db_msh','--ref_db_msh',required=False,help='optional, a compressed .msh file contains the entire reference genome. If no such file is provided, this code will generate it')
-	parser.add_argument('-db_pred','--distPred_db',required=False,help='optional folder path where output files go (if not specified, the input file path is used)')
+	parser.add_argument('-db_pred','--distPred_db',required=True,help='optional folder path where output files go (if not specified, the input file path is used)')
 	return parser
 
 def select_refs(ref_db_msh, faa_file, sele_n=1):
@@ -106,8 +106,8 @@ def main():
 	if args.ref_db_msh:
 		ref_db_msh = args.ref_db_msh
 	else:
-		os.system(f"mash sketch -o ../reference_set/reference $(cat {db_lst}) -p 8 -a")
-	
+		os.system(f"mash sketch -o ../data/ncbi_reference $(cat {db_lst}) -p 8 -a")
+		ref_db_msh = f"../data/ncbi_reference.msh"
 	## selecting
 	sele_refs_file = select_refs(ref_db_msh, faa_file, sele_n=1)
 	
@@ -129,6 +129,7 @@ def main():
 		if not os.path.exists(outfile):
 			n_noPred += 1
 			save_distPred(ref_g, outfile)
+
 	
 	print(f"# of no dist prediction: {n_noPred}")
 	print(f"Time for preparing the prediction of selected reference genomes: {datetime.now() - start}")

@@ -10,6 +10,20 @@ from UniOP_dst import *
 from LR import *
 
 
+def create_parser2():
+	'''
+	get command line arguments
+	'''
+	parser = argparse.ArgumentParser(description='Operon prediction using intergenic distance and conservation of adjacent gene pairs.',
+									 epilog="""An example:\npython3 UniOP.py -a ../demo/GCF_000005845.2.faa -db_msh ../data/ncbi_reference.msh\n""")
+	parser.add_argument('-i','--fna_file',required=False,help='fasta genome sequence.')
+	parser.add_argument('-a','--faa_file',required=False,help='fasta amino acids sequence predicted by Prodigal.')
+	parser.add_argument('-t','--path',required=False,help='optional folder path where output files go (if not specified, the input file path is used)')
+	parser.add_argument('-n','--n_sample',required=False,help='optional, the number of samples to generate a random combination of convergent and divergent distances, default 10**4)')
+	parser.add_argument('-db_msh','--ref_db_msh',required=True,help='required by conservation model (UniOP_cons): a compressed .msh file contains the entire reference genome.')
+	parser.add_argument('-db_pred','--distPred_db',required=True,help='required by conservation model: operon prediction database of the selected reference set. This is prepared by UniOP_dst.')
+	return parser
+
 def run_spacedust(faa_file, ref_faa_lst, maxseq=500, e_val=10, cluw=0, maxggap=5, covm=2, path=None):
 	'''
 	Perform cluster searching using Spacedust, the parameters in spacedust are fixed.
@@ -343,7 +357,7 @@ def save_final_prediction(infile, distPred_db, n_sample, path=None):
 			fout.write(f"{i+1}\t{i+2}\t{dist_prob.ljust(9)}\t{cons_prob.ljust(9)}\t{comb_prob.ljust(9)}\n")
 			
 def main():
-	parser = create_parser()
+	parser = create_parser2()
 	args = parser.parse_args(args=None if sys.argv[1:] else ['--help'])
 	start = datetime.now()
 	

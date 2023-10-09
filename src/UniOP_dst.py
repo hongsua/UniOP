@@ -21,13 +21,11 @@ def create_parser():
 	get command line arguments
 	'''
 	parser = argparse.ArgumentParser(description='Operon prediction using intergenic distance and conservation of adjacent gene pairs.',
-									 epilog="""An example:\npython3 UniOP_dst.py -i ../demo/GCF_000005845.2.fna\n""")
+									 epilog="""An example:\npython3 UniOP_dst.py -a ../demo/GCF_000005845.2.faa\n""")
 	parser.add_argument('-i','--fna_file',required=False,help='fasta genome sequence.')
 	parser.add_argument('-a','--faa_file',required=False,help='fasta amino acids sequence predicted by Prodigal.')
 	parser.add_argument('-t','--path',required=False,help='optional folder path where output files go (if not specified, the input file path is used)')
 	parser.add_argument('-n','--n_sample',required=False,help='optional, the number of samples to generate a random combination of convergent and divergent distances, default 10**4)')
-	parser.add_argument('-db_msh','--ref_db_msh',required=False,help='required by conservation model (UniOP_cons): a compressed .msh file contains the entire reference genome.')
-	parser.add_argument('-db_pred','--distPred_db',required=False,help='required by conservation model: operon prediction database of the selected reference set. This is prepared by UniOP_dst.')
 	return parser
 
 def read_faa(faa):
