@@ -40,14 +40,13 @@ def run_spacedust(faa_file, ref_faa_lst, maxseq=500, e_val=10, cluw=0, maxggap=5
 	if not os.path.exists(targetdb):
 		print(f"prepare targetdb...")
 		os.system(f"spacedust createsetdb $(cat {ref_faa_lst}) {targetdb} {clusterresult_dir}/t_tmp")
-	os.chdir(clusterresult_dir)
 	resultdb = f"{clusterresult_dir}/resultdb"
 	if not os.path.exists(resultdb):
 		print(f"run clustersearch...")
-		command = f"spacedust clustersearch {querydb} {targetdb} resultdb res_tmp --max-seqs {maxseq} -e {e_val} --threads 16 --cluster-use-weight {cluw} --max-gene-gap {maxggap} --suboptimal-hits 0 --cov-mode {covm}"
+		command = f"spacedust clustersearch {querydb} {targetdb} {clusterresult_dir}/resultdb res_tmp --max-seqs {maxseq} -e {e_val} --threads 16 --cluster-use-weight {cluw} --max-gene-gap {maxggap} --suboptimal-hits 0 --cov-mode {covm}"
 		os.system(command)
-	os.system(f"spacedust prefixid resultdb {clusterresult_dir}/resultdb_pref --tsv 1")
-	os.system(f"spacedust prefixid resultdb_h {clusterresult_dir}/resultdb_h_pref --tsv 1")
+	os.system(f"spacedust prefixid {clusterresult_dir}/resultdb {clusterresult_dir}/resultdb_pref --tsv 1")
+	os.system(f"spacedust prefixid {clusterresult_dir}/resultdb_h {clusterresult_dir}/resultdb_h_pref --tsv 1")
 
 def read_lookup(lookup_file):
 	mapping = pd.read_csv(lookup_file, sep="\t", header=None,
