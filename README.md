@@ -34,6 +34,9 @@ cd UniOP-main/src
 (The details about how to install the above dependencies.)
 ```
 ## Usage
+## Input
+The starting point is either a FASTA file of the nucleotide genome sequence (`.fna`) or protein-coding sequences (**CDS**) (`.faa`)(typically by running a gene prediction program like [Prodigal](https://github.com/hyattpd/Prodigal))
+
 ### Operon prediction based on intergenic distance only
 ```
 python3 UniOP_dst.py -i ../demo/GCF_000005845.2.fna
@@ -45,9 +48,6 @@ python3 UniOP.py -a ../demo/GCF_000005845.2.faa -db_msh ../data/ncbi_reference.m
 ```
 This will output a directory: **spacedust** containing the gene clusters detected by the program **spacedust**, and the final prediction: **uniop.pred**.
 
-
-
-
-
-## Input
-The starting point is either a FASTA file of the nucleotide genome sequence (`.fna`) or protein-coding sequences (**CDS**) (`.faa`)(typically by running a gene prediction program like [Prodigal](https://github.com/hyattpd/Prodigal))
+## Support
+If you have questions or found any bug in the program, please write to us at
+hong.su[at]mpinat.mpg.de
