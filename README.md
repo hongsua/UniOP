@@ -35,9 +35,13 @@ cd UniOP-main/src
 ```
 ## Usage
 ## Input
-The starting point is either a FASTA file of the nucleotide genome sequence (`.fna`) or protein-coding sequences (**CDS**) (`.faa`)(typically by running a gene prediction program like [Prodigal](https://github.com/hyattpd/Prodigal))
+The starting point should be either a FASTA file of the nucleotide genome sequence (`.fna`) or protein-coding sequences (**CDS**) (`.faa`). This is typically achieved by running a gene prediction program such as [Prodigal](https://github.com/hyattpd/Prodigal).
 
-### Operon prediction based on intergenic distance only
+```
+## demo: GCF_000005845.2.fna
+```
+
+### Operon prediction based on intergenic distance
 ```
 python3 UniOP_dst.py -i ../demo/GCF_000005845.2.fna
 ```
