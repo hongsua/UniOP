@@ -1,0 +1,11 @@
+refseq		species
+GCF_000005845.2	escherichia-coli-k12-mg1655
+GCF_000009045.1	bacillus-subtilis-subsp-subtilis-168
+GCF_000011865.1	campylobacter-jejuni-rm1221
+GCF_000016965.1	clostridium-beijerinckii-NCIMB-8052
+GCF_000009205.2	clostridioides-difficile-630
+GCF_000195955.2	mycobacterium-tuberculosis-h37rv
+GCF_000346065.1	sinorhizobium-meliloti-2011
+GCF_000022165.1	salmonella-enterica-subsp-enterica-serovar-Typhimurium-14028S
+GCF_000024265.1	eggerthella-lenta-dsm2243
+GCF_000012525.1	synechoccus-elongatus-pcc7942
