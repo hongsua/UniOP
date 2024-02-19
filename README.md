@@ -13,15 +13,13 @@ UniOP is implemented in Python3 and runs on MacOS and Linux systems.
 **UniOP** requires:
 ```
 * Prodigal(https://github.com/hyattpd/Prodigal/wiki/installation)
-* spacedust(https://github.com/soedinglab/spacedust)
-* mash(https://github.com/marbl/mash)
 ```
 ### Install UniOP
 ```
 wget https://github.com/hongsua/UniOP/archive/refs/heads/main.zip
 unzip main.zip
 ```
-Install **Prodigal**,**spacedust**, and **mash** into the working directory, ~/UniOP-main/src.
+Install **Prodigal** into the working directory, ~/UniOP-main/src.
 
 ## Usage
 ## Input
@@ -33,15 +31,10 @@ cd UniOP-main/src
 ```
 ### Operon prediction based on intergenic distance
 ```
-python3 UniOP_dst.py -i ../demo/GCF_000005845.2.fna
+python3 UniOP.py -i ../demo/GCF_000005845.2.fna
 ```
-This will output gene predictions into the same path as the input file, resulting in the following output files: **GCF_000005845.2.faa**, **GCF_000005845.2.gff**, and the operon prediction file named **dist.pred**.
+This will output gene predictions into the same path as the input file, resulting in the following output files: **GCF_000005845.2.faa**, **GCF_000005845.2.gff**, and the operon prediction file named **uniop.pred**.
 
-### Operon prediction based on intergenic distance and conserved adjacent gene pairs
-```
-python3 UniOP.py -a ../demo/GCF_000005845.2.faa -db_msh ../data/ncbi_reference.msh -db_pred ../data/dist_prediction
-```
-This will output a directory named **spacedust**, which contains the gene clusters detected by the **spacedust** program, and the final prediction file named **uniop.pred**.
 
 ## Support
 If you have questions or found any bug in the program, please write to us at
