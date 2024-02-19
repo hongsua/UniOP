@@ -1,4 +1,4 @@
-# UniOP: self-supervised universal operon prediction for prokaryotic (meta-)genomics data
+# UniOP: unsupervised single-sequence operon prediction for all prokaryotic (meta-)genomics data
 The manuscript is currently being prepared.
 ```
 UniOP is implemented in Python3 and runs on MacOS and Linux systems.
@@ -6,7 +6,7 @@ UniOP is implemented in Python3 and runs on MacOS and Linux systems.
 
 ## Overview
 **UniOP** is a fast and accurate computational method for operon prediction, independent of experimental or functional information. It takes as input prokaryotic genomes or metagenomic assembled genomes (MAGs).
-![](figures/flowchart_UniOP.pdf)
+[embed](figures/flowchart_UniOP.pdf)[embed]
 
 ## Installation
 ### Dependencies
