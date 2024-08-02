@@ -7,7 +7,7 @@ UniOP is implemented in Python3 and runs on MacOS and Linux systems.
 **UniOP** is a fast and accurate computational method for operon prediction, independent of experimental or functional information. It takes as input prokaryotic genomes or metagenomic assembled genomes (MAGs).
 ![](figures/flowchart_UniOP.png)
 
-## Installation
+## How to use UniOP
 ### Dependencies
 **UniOP** requires:
 ```
@@ -21,7 +21,7 @@ The starting point should be either a FASTA file of the nucleotide genome sequen
 ```
 git clone https://github.com/hongsua/UniOP.git
 cd UniOP/src
-python UniOP.py -a ../demo/GCF_000005845.2.faa
+python UniOP -a ../demo/GCF_000005845.2.faa
 ```
 Install **Prodigal** into the working directory, ~/UniOP/src.
 
@@ -30,8 +30,13 @@ This will output file **uniop.pred** into the same path as the input file.
 If the input file is the nucleotide genomic sequence, then you will get the following files: **GCF_000005845.2.faa**, **GCF_000005845.2.gff**, and the operon prediction file named **uniop.pred**.
 
 ```
-python UniOP.py -i ../demo/GCF_000005845.2.fna
+python UniOP -i ../demo/GCF_000005845.2.fna
 ```
+You can type:
+```
+python UniOP --help
+```
+to find all parameters in UniOP.
 
 
 ## Support
