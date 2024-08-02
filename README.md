@@ -11,27 +11,20 @@ UniOP is implemented in Python3 and runs on MacOS and Linux systems.
 ### Dependencies
 **UniOP** requires:
 ```
-* Prodigal(https://github.com/hyattpd/Prodigal/wiki/installation)
+* Python (>=3.11)
+* Python libaries: argparse, pandas, numpy, scikit-learn, datetime
+* Prodigal [conda install -c bioconda prodigal]
 ```
-### Install UniOP
-```
-wget https://github.com/hongsua/UniOP/archive/refs/heads/main.zip
-unzip main.zip
-```
-Install **Prodigal** into the working directory, ~/UniOP-main/src.
-
-## Usage
-## Input
 The starting point should be either a FASTA file of the nucleotide genome sequence (`.fna`) or protein-coding sequences (**CDS**) (`.faa`). This is typically achieved by running a gene prediction program such as [Prodigal](https://github.com/hyattpd/Prodigal).
 
+### Quickstart
 ```
-## demo: GCF_000005845.2.fna
-cd UniOP-main/src
+git clone https://github.com/hongsua/UniOP.git
+cd UniOP/src
+python UniOP.py -i ../demo/GCF_000005845.2.fna
 ```
-### Operon prediction based on intergenic distance
-```
-python3 UniOP.py -i ../demo/GCF_000005845.2.fna
-```
+Install **Prodigal** into the working directory, ~/UniOP/src.
+
 This will output gene predictions into the same path as the input file, resulting in the following output files: **GCF_000005845.2.faa**, **GCF_000005845.2.gff**, and the operon prediction file named **uniop.pred**.
 
 
