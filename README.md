@@ -1,4 +1,4 @@
-# UniOP: unsupervised single-sequence operon prediction for all prokaryotic (meta-)genomics data
+# UniOP: Universal operon prediction for high-throughput prokaryotic (meta-)genomics data using intergenic distanace
 ```
 UniOP was implemented in Python 3.11.5 and runs on MacOS and Linux systems.
 ```
