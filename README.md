@@ -25,9 +25,9 @@ python UniOP -a ../demo/GCF_000005845.2.faa
 ```
 Install **Prodigal** into the working directory, ~/UniOP/src.
 
-This will output file **uniop.pred** into the same path as the input file.
+This will output files **uniop.pred** and **uniop.operon** into the same path (../demo/) as the input file.
 
-If the input file is the nucleotide genomic sequence, then you will get the following files: **GCF_000005845.2.faa**, **GCF_000005845.2.gff**, and the operon prediction file named **uniop.pred**.
+If the input file is the nucleotide genomic sequence, you will get the following files: **GCF_000005845.2.faa**, **GCF_000005845.2.gff** as well.
 
 ```
 python UniOP -i ../demo/GCF_000005845.2.fna
