@@ -9,6 +9,7 @@ Created on Wednesday May 24 2023
 import argparse
 import sys
 import os
+import re
 
 import pandas as pd
 import numpy as np
@@ -28,6 +29,7 @@ def create_parser():
 	parser.add_argument('-a','--faa_file',required=False,help='fasta amino acids sequence predicted by Prodigal (if not specified, fna_file must be specified).')
 	parser.add_argument('-t','--path',required=False,help='optional folder path where output files go (if not specified, the input file path is used)')
 	parser.add_argument('-n','--n_sample',required=False,help='optional, the number of samples to generate a random combination of convergent and divergent distances, default 10**4)')
+	parser.add_argument("--operon_flag", default=True, help='Output operon prediction.')
 	return parser
 
 def read_faa(faa):
@@ -176,7 +178,61 @@ def gene_prediction(inputfile, path=None):
 	os.system(f"prodigal -i {inputfile} -f gff -o {gff_file} -a {faa_file}")
 	return faa_file
 
-def output_distPred(inputfile, n_sample, path=None):
+def collect_prediction_perMethod(pred_file):
+	## pred_file: prediction of all abjacent gene pairs including the same-strand and opposite-strand pairs
+	with open(pred_file) as infile:
+		lines = infile.read().splitlines()
+	tar_lines = [l.split('\t') for l in lines if re.match(r'^\d+|Gene', l)]
+	headers = tar_lines[0]
+	df_pred = pd.DataFrame(tar_lines[1:])
+	df_pred.columns = headers
+	## remove the opposite-strand pairs
+	col = df_pred.columns[-1]
+	df_pred = df_pred[df_pred[col].str.strip().astype(bool)]
+	return df_pred
+
+def pairs2operon(pred_file, d_source='Prediction', cutoff=0.5):
+	"""
+	extract operons based on the predictive operonic pairs
+	pred_file: the prediction file from UniOP
+	d_source: the probability predicted using different data source, such as distance, conservation, and so on
+	ver_dict: the ground truth extract from the annotation file
+	"""
+	df_pred = collect_prediction_perMethod(pred_file) ## all same-strand adjacent pairs
+	df_pred[['Gene A','Gene B']] = df_pred[['Gene A','Gene B']].astype('int')
+	rcols = [col for col in df_pred.columns if col not in ['Gene A','Gene B','']]
+	df_pred[rcols] = df_pred[rcols].astype('float')
+	df_pred['ex_GeneB'] = df_pred['Gene B'].shift(1) # the last gene of the last pair
+	## the index of 'Gene A', 'Gene B' starts from 1 not 0
+	## the index in df_gff starts from 0
+	operons = {}
+	n = 1
+	flag = 0  ## 0: continue the same operon, 1: start a new operon
+	for i in df_pred.index:
+		if df_pred.at[i,f'{d_source}'] >= cutoff: # belong to the same operon
+			if flag == 1: # a new operon and the last pair is non-operonic pair
+				n += 1
+				operons[n] = []
+				operons[n].extend([df_pred.at[i,'Gene A'],df_pred.at[i,'Gene B']])
+			elif n not in operons: # a new operon and this is the first pair belonging to the same operon
+				operons[n] = []
+				operons[n].extend([df_pred.at[i,'Gene A'],df_pred.at[i,'Gene B']])
+			elif df_pred.at[i,'Gene A'] != df_pred.at[i,'ex_GeneB']: # not adjacent genes, new operon
+				n += 1
+				operons[n] = []
+				operons[n].extend([df_pred.at[i,'Gene A'],df_pred.at[i,'Gene B']])
+			else: # the same operon
+				operons[n].append(df_pred.at[i,'Gene B'])
+			flag = 0
+		else:
+			flag = 1 # non-operonic
+	df_operons = pd.DataFrame(operons.items(),columns=['idx_op','idx_genes'])
+	df_operons = df_operons.drop(columns=['idx_op'])
+	df_operons['idx_op'] = df_operons.index
+	
+	return df_operons
+
+def output_distPred(inputfile, n_sample, path=None, operon_flag=False):
 	'''
 	with a prediction file in the format Gene A\tGene B\tPrediction
 	'''
@@ -200,10 +256,16 @@ def output_distPred(inputfile, n_sample, path=None):
 			else:
 				prob = ''
 			fout.write(f"{i+1}\t{i+2}\t{prob.ljust(9)}\n")
+			
+	if operon_flag:
+		df_operon = pairs2operon(outfile)
+		outfile_op = f"{path}/uniop.operon"
+		df_operon.to_csv(outfile_op, index=False)
 
 def main():
 	parser = create_parser()
 	args = parser.parse_args(args=None if sys.argv[1:] else ['--help'])
+	
 	
 	start = datetime.now()
 	if args.faa_file:
@@ -232,8 +294,9 @@ def main():
 		n_sample = args.n_sample
 	else:
 		n_sample = 10**4
-	output_distPred(faa_file, n_sample, path=data_path)
+	output_distPred(faa_file, n_sample, path=data_path, operon_flag=args.operon_flag)
 	print(f"Time for UniOP prediction: {datetime.now() - start}")
+	
 	
 
 if __name__ == '__main__':
