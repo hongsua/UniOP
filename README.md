@@ -23,7 +23,7 @@ git clone https://github.com/hongsua/UniOP.git
 cd UniOP/src
 python UniOP -a ../demo/GCF_000005845.2.faa
 ```
-Install **Prodigal** into the working directory, ~/UniOP/src.
+Note: Install **Prodigal** into the working directory, ~/UniOP/src, is necessary.
 
 This will output files **uniop.pred** and **uniop.operon** into the same path (../demo/) as the input file.
 
