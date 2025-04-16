@@ -12,7 +12,7 @@ UniOP was implemented in Python 3.11.5 and runs on MacOS and Linux systems.
 **UniOP** requires:
 ```
 * Python (The results in the paper were obtained by 3.11.5)
-* Python libraries: argparse, pandas, numpy, scikit-learn, datetime
+* Python libraries: argparse, pandas, numpy, sklearn(scikit-learn), datetime
 * Prodigal [conda install -c bioconda prodigal]
 ```
 The starting point should be either a FASTA file of the nucleotide genome sequence (`.fna`) or protein-coding sequences (**CDS**) (`.faa`). This is typically achieved by running a gene prediction program such as [Prodigal](https://github.com/hyattpd/Prodigal).
