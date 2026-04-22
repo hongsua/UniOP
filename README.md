@@ -5,7 +5,7 @@ UniOP was implemented in Python 3.11.5 and runs on MacOS or Linux systems.
 
 ## Overview
 **UniOP** is a fast, accurate and unbiased computational method for operon prediction, independent of experimental or functional information. It takes as input prokaryotic genomes or metagenome-assembled genomes (MAGs).
-![](figures/flowchart_UniOP.png)
+![](figures/Graphical_abstract.png)
 
 ## How to use UniOP
 ### Dependencies
