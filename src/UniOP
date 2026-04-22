@@ -22,8 +22,8 @@ def create_parser():
 	'''
 	parser = argparse.ArgumentParser(description='Operon prediction using intergenic distance.',
 									 epilog='''Examples:
-	python3 UniOP.py -i ../demo/GCF_000005845.2.fna
-	python3 UniOP.py -a ../demo/GCF_000005845.2.faa''',
+	python3 UniOP -i ../demo/GCF_000005845.2.fna
+	python3 UniOP -a ../demo/GCF_000005845.2.faa''',
 									 formatter_class=argparse.RawDescriptionHelpFormatter)
 	parser.add_argument('-i','--fna_file',required=False,help='fasta genome sequence (if not specified, faa_file must be specified).')
 	parser.add_argument('-a','--faa_file',required=False,help='fasta amino acids sequence predicted by Prodigal (if not specified, fna_file must be specified).')
