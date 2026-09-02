@@ -24,7 +24,6 @@ You can install Prodigal via:
 
 conda install -c bioconda prodigal
 ```
-The starting point should be either a FASTA file of the nucleotide genome sequence (`.fna`) or protein-coding sequences (**CDS**) (`.faa`). This is typically achieved by running a gene prediction program such as [Prodigal](https://github.com/hyattpd/Prodigal).
 
 ### Quickstart
 Clone the repository and run UniOP on the provided demo data.
@@ -54,8 +53,8 @@ python UniOP -f ../demo/GCF_000005845.2.gff --gff_source ncbi_fgff   # for NCBI 
 > **Note**: If you use the `-i` option, Prodigal must be installed and accessible via `--bin_dir`.
 
 This will output:
-- **uniop.pred** -pairwise operon probabilities for all adjacent same-strand gene pairs.
-- **uniop.operon** -assembled operon units (if not disabled with `--no_operon_assembly`)
+- `uniop.pred`  -pairwise operon probabilities for all adjacent same-strand gene pairs.
+- `uniop.operon` -assembled operon units (if not disabled with `--no_operon_assembly`)
 
 By default, output files are written to the same directory as the input file. You can specify an output folder with `-t`:
 
