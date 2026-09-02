@@ -22,35 +22,72 @@ UniOP takes as input either a nucleotide genome sequence (FASTA), a protein sequ
 
 You can install Prodigal via:
 
-``` bash
 conda install -c bioconda prodigal
 ```
 The starting point should be either a FASTA file of the nucleotide genome sequence (`.fna`) or protein-coding sequences (**CDS**) (`.faa`). This is typically achieved by running a gene prediction program such as [Prodigal](https://github.com/hyattpd/Prodigal).
 
 ### Quickstart
+Clone the repository and run UniOP on the provided demo data.
+
 ```
 git clone https://github.com/hongsua/UniOP.git
 cd UniOP/src
-python UniOP -a ../demo/GCF_000005845.2.faa
 ```
-Note: Install **Prodigal** into the working directory, ~/UniOP/src, is necessary.
 
-This will output files **uniop.pred** and **uniop.operon** into the same path (../demo/) as the input file by default. You can also specify a folder with the command:
+#### Using a genomic sequence (auto-runs Prodigal)
 ```
-python UniOP -i ../demo/GCF_000005845.2.fna -t your_folder
+python UniOP -i ../demo/GCF_000005845.2.fna --bin_dir /path/to/prodigal
 ```
-If the input file is the nucleotide genomic sequence, you will get the following files: **GCF_000005845.2.faa**, **GCF_000005845.2.gff** as well.
+
+#### Using a FAA file
+```
+python UniOP -a ../demo/GCF_000005845.2.faa --faa_source prodigal_faa   # for Prodigal FAA
+python UniOP -a ../demo/GCF_000005845.2.faa --faa_source ncbi_faa   # for NCBI FAA
+```
+
+#### Using a GFF file
+```
+python UniOP -f ../demo/GCF_000005845.2.gff --gff_source prodigal_gff   # for Prodigal GFF
+python UniOP -f ../demo/GCF_000005845.2.gff --gff_source ncbi_fgff   # for NCBI GFF
+```
+
+> **Note**: If you use the `-i` option, Prodigal must be installed and accessible via `--bin_dir`.
+
+This will output:
+- **uniop.pred** -pairwise operon probabilities for all adjacent same-strand gene pairs.
+- **uniop.operon** -assembled operon units (if not disabled with `--no_operon_assembly`)
+
+By default, output files are written to the same directory as the input file. You can specify an output folder with `-t`:
 
 ```
-python UniOP -i ../demo/GCF_000005845.2.fna
+python UniOP -i ../demo/GCF_000005845.2.fna -t ./results --bin_dir /path/to/prodigal
 ```
-You can type:
+
+### Supported input formats
+
+| Input type                | Option | Required argument                  | Example command |
+|---------------------------|--------|------------------------------------|-----------------|
+| Genomic sequence (FNA)    | `-i`   | `--bin_dir` (if not in PATH)       | `python UniOP.py -i genome.fna --bin_dir /usr/bin` |
+| Prodigal FAA              | `-a`   | `--faa_source prodigal_faa`        | `python UniOP.py -a genes.faa --faa_source prodigal_faa` |
+| NCBI FAA                  | `-a`   | `--faa_source ncbi_faa`            | `python UniOP.py -a genes.faa --faa_source ncbi_faa` |
+| Prodigal GFF              | `-f`   | `--gff_source prodigal_gff`        | `python UniOP.py -f genes.gff --gff_source prodigal_gff` |
+| NCBI GFF                  | `-f`   | `--gff_source ncbi_gff`            | `python UniOP.py -f genes.gff --gff_source ncbi_gff` |
+
+
+### Full parameter list
 ```
 python UniOP --help
 ```
-to find all parameters in UniOP.
 
+### Citation
+If you use UniOP in your research, please cite the preprint:
+> Su, H., Zhang, R., & Söding, J. (2024). UniOP: a universal operon prediction for high-throughput prokaryotic (meta-) genomic data using intergenic distance. *bioRxiv*, 2024-11.
 
-## Support
-If you have questions or found any bug in the program, please write to us at
-hong.su[at]nankai.edu.cn
+We will update the official citation once the manuscript is published.
+
+### Support
+If you have questions, encounter any bugs, or need help applying UniOP to your data, please open an issue on GitHub or contact us directly:
+- GitHub Issues: [https://github.com/hongsua/UniOP/issues](https://github.com/hongsua/UniOP/issues)
+- hong.su[at]nankai.edu.cn
+
+We welcome feedback, feature requests, and community contributions.
