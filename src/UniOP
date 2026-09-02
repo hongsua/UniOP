@@ -1,11 +1,3 @@
-#!/usr/bin/env python
-
-"""
-UniOP - Predicting operons using intergenic distance
-Created on Wednesday May 24 2023
-@author: Hong Su
-"""
-
 import argparse
 import sys
 import os
@@ -17,287 +9,396 @@ from datetime import datetime
 from sklearn.neighbors import KernelDensity
 
 def create_parser():
-	'''
-	get command line arguments
-	'''
-	parser = argparse.ArgumentParser(description='Operon prediction using intergenic distance.',
-									 epilog='''Examples:
-	python3 UniOP -i ../demo/GCF_000005845.2.fna
-	python3 UniOP -a ../demo/GCF_000005845.2.faa''',
-									 formatter_class=argparse.RawDescriptionHelpFormatter)
-	parser.add_argument('-i','--fna_file',required=False,help='fasta genome sequence (if not specified, faa_file must be specified).')
-	parser.add_argument('-a','--faa_file',required=False,help='fasta amino acids sequence predicted by Prodigal (if not specified, fna_file must be specified).')
-	parser.add_argument('-t','--path',required=False,help='optional folder path where output files go (if not specified, the input file path is used)')
-	parser.add_argument('-n','--n_sample',required=False,help='optional, the number of samples to generate a random combination of convergent and divergent distances, default 10**4)')
-	parser.add_argument("--operon_flag", default=True, help='Output operon prediction.')
-	return parser
+    '''
+    get command line arguments
+    '''
+    parser = argparse.ArgumentParser(description='UniOP: operon prediction using intergenic distance.',
+                                     epilog='''Examples:
+    # From genomic sequence (auto-run Prodigal)
+    python3 UniOP -i ../demo/GCF_000005845.2.fna
+
+    # From FAA file (Prodigal or NCBI; specify source with --faa_source)
+    python3 UniOP -a ../demo/GCF_000005845.2.faa --faa_source prodigal_faa
+    python3 UniOP -a ../demo/GCF_000005845.2.faa --faa_source ncbi_faa
+
+    # From GFF file  (Prodigal or NCBI; specify source with --gff_source)
+    python3 UniOP -f ../demo/GCF_000005845.2.gff --gff_source prodigal_gff
+    python3 UniOP -f ../demo/GCF_000005845.2.gff --gff_source ncbi_gff''',
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    # ============ Input files ============
+    parser.add_argument(
+        '-i','--fna_file',
+        required=False,
+        help='Genomic sequence in FASTA format. Prodigal will be run automatically for gene calling.')
+    parser.add_argument(
+        '-a','--faa_file',
+        required=False,
+        help='Protein sequence file in FASTA format (.faa). Can be from Prodigal or NCBI.'
+             'Use --faa_source to specify the origin.')
+    parser.add_argument(
+        '-f','--gff_file',
+        required=False,
+        help='Gene annotation file in GFF format (.gff). Can be from Prodigal or NCBI.'
+             'Use --gff_source to specify the origin.')
+    
+    # ============ Source specification ============
+    parser.add_argument(
+        '--faa_source',
+        choices=['prodigal_faa', 'ncbi_faa'],
+        required=False,
+        help='Source of the FAA file. Required if -a is provided.')
+    parser.add_argument(
+        '--gff_source',
+        choices=['prodigal_gff', 'ncbi_gff'],
+        required=False,
+        help='Source of the GFF file. Required if -f is provided.')
+    
+    # ============ Optional parameters ============
+    parser.add_argument(
+        '-t','--path',
+        required=False,
+        help='Output directory (default: same as input file location).')
+    parser.add_argument(
+        '-n','--n_sample',
+        type=int,
+        default=10000,
+        help='Number of samples for convergent-divergent distance combinations (default 10**4).')
+    parser.add_argument(
+        '--no_operon_assembly', 
+        action='store_true',
+        default=False, 
+        help='Disable operon assembly; output only pairwise probabilities (default: output assembled operons).')
+    
+    # ============ Prodigal path ============
+    parser.add_argument(
+        '--bin_dir',
+        type=str,
+        required=False,
+        default=None,
+        help='Directory containing the Prodigal executable (e.g., /usr/local/bin).'
+        'Required when -i (FNA file) is specified.')
+    return parser
 
 def read_faa(faa):
-	'''
-	read the faa file (predicted by Prodigal) into the data frame
-	'''
-	reader = open(faa,'r')
-	lines = reader.readlines()
-	lines = [l.split('#') for l in lines if l.startswith('>')]
-	df = pd.DataFrame(lines,columns=['nc','start','stop','strand','attribute'])
-	df['nc'] = df['nc'].replace(r'>|_\d+\s+','',regex=True) ## extract the contig name. This works for complete genomes and metagenomes
-	df = df[['nc','start','stop','strand']].astype({'nc':'str','start':'int','stop':'int','strand':'int'})
-	df['strand'] = df['strand'].replace(1,'+',regex=True)
-	df['strand'] = df['strand'].replace(-1,'-',regex=True)
-	return df
+    '''
+    read the faa file (predicted by Prodigal) into the data frame
+    '''
+    reader = open(faa,'r')
+    lines = reader.readlines()
+    lines = [l.split('#') for l in lines if l.startswith('>')]
+    df = pd.DataFrame(lines,columns=['nc','start','stop','strand','attribute'])
+    df['nc'] = df['nc'].replace(r'>|_\d+\s+','',regex=True) ## extract the contig name. This works for complete genomes and metagenomes
+    df = df[['nc','start','stop','strand']].astype({'nc':'str','start':'int','stop':'int','strand':'int'})
+    df['strand'] = df['strand'].replace(1,'+',regex=True)
+    df['strand'] = df['strand'].replace(-1,'-',regex=True)
+    df['strand'] = df['strand'].astype('str')
+    return df
+
+def read_gff(gff, flag=['gene','pseudogene']):
+    '''
+    For gff sourced from NCBI database, genes in ['gene', 'pseudogene'] are recorded.
+    '''
+    reader = open(gff,'r')
+    lines = reader.readlines()
+    lines = [l.split('\t') for l in lines if not l.startswith('#') and len(l)>0]
+    lines = [[int(l[3]), l] for l in lines if l[2] in flag]
+    ## reorder genes according to their starting position
+    ## regardless of the strand, the start point is lower than the end point.
+    sort_lines = sorted(lines, key=lambda x:x[0])
+    df = pd.DataFrame([sort_lines[i][1] for i in range(len(sort_lines))])
+    df.columns = [str(i) for i in df.columns]
+    df = df.rename(columns={'0':'nc','2':'feature','3':'start','4':'stop','6':'strand','8':'header'})
+    df = df.astype({'feature':'str','start':'int', 'stop':'int', 'strand':'str'})
+    
+    return df[['nc','start','stop','strand']]
 
 def extract_pairs_singlecontig(df_GFF):
-	'''
-	extract three types of adjacent gene pairs including the same strand, the convergent, and the divergent adjacent gene pairs
-	'''
-	# extract different types of neighboring genes
-	df_gff = df_GFF.copy()	
-	df_gff['strandnext'] = df_gff.strand.shift(-1)
-	df_gff['startnext'] = df_gff.start.shift(-1)
-	df_gff['IGD'] = df_gff['startnext'] - df_gff['stop'] + 1
-	df_gff = df_gff.dropna() ## exclude the last gene
-	pairs = []
-	for i in df_gff.index:
-		if df_gff.at[i,"strand"] == df_gff.at[i,"strandnext"]: 
-			pairs.append("SGs") ## the same strand adjacent gene pairs
-		elif df_gff.at[i,"strand"] == "+": 
-			pairs.append("CGs") ## the convergent adjacent gene pairs
-		else:
-			pairs.append("DGs") ## the divergent adjacent gene pairs
-	df_gff['pairs'] = pairs
-	return df_gff
-
+    '''
+    extract three types of adjacent gene pairs including the same strand, the convergent, and the divergent adjacent gene pairs
+    '''
+    # extract different types of neighboring genes
+    df_gff = df_GFF.copy()	
+    df_gff['strandnext'] = df_gff.strand.shift(-1)
+    df_gff['startnext'] = df_gff.start.shift(-1)
+    df_gff['IGD'] = df_gff['startnext'] - df_gff['stop'] + 1
+    df_gff = df_gff.dropna() ## exclude the last gene
+    pairs = []
+    for i in df_gff.index:
+        if df_gff.at[i,"strand"] == df_gff.at[i,"strandnext"]: 
+            pairs.append("SGs") ## the same strand adjacent gene pairs
+        elif df_gff.at[i,"strand"] == "+": 
+            pairs.append("CGs") ## the convergent adjacent gene pairs
+        else:
+            pairs.append("DGs") ## the divergent adjacent gene pairs
+    df_gff['pairs'] = pairs
+    return df_gff
 def extract_pairs_multicontigs(df_GFF):
-	'''
-	this is for the genome consisting of multiple contigs.
-	'''
-	df_gff = df_GFF.copy()	
-	n_ctgs = df_gff['nc'].unique() # all contigs
-	all_df_pairs = []
-	if len(n_ctgs) == 1:
-		df_i_ctg = df_gff[df_gff['nc']==n_ctgs[0]][['nc','start','stop','strand']]
-		df_pairs = extract_pairs_singlecontig(df_i_ctg)
-		return df_pairs
-	else:
-		for i in n_ctgs:
-			df_i_ctg = df_gff[df_gff['nc']==i][['nc','start','stop','strand']]
-			if len(df_i_ctg) <= 1: # remove the contigs with less than 2 genes
-				continue
-			df_pairs = extract_pairs_singlecontig(df_i_ctg)
-			all_df_pairs.append(df_pairs) # contain all contigs with >= 2 genes
+    '''
+    this is for the genome consisting of multiple contigs.
+    '''
+    df_gff = df_GFF.copy()	
+    n_ctgs = df_gff['nc'].unique() # all contigs
+    all_df_pairs = []
+    if len(n_ctgs) == 1:
+        df_i_ctg = df_gff[df_gff['nc']==n_ctgs[0]][['nc','start','stop','strand']]
+        df_pairs = extract_pairs_singlecontig(df_i_ctg)
+        return df_pairs
+    else:
+        for i in n_ctgs:
+            df_i_ctg = df_gff[df_gff['nc']==i][['nc','start','stop','strand']]
+            if len(df_i_ctg) <= 1: # remove the contigs with less than 2 genes
+                continue
+            df_pairs = extract_pairs_singlecontig(df_i_ctg)
+            all_df_pairs.append(df_pairs) # contain all contigs with >= 2 genes
 
-		df_allpairs = pd.concat(all_df_pairs, axis=0)
-		return df_allpairs
-
+        df_allpairs = pd.concat(all_df_pairs, axis=0)
+        return df_allpairs
 def estimate_q(df_pairs):
-	'''
-	q is a probability that a pair of genes, located adjacent to each other on the same DNA strand, are part of an operon. 
-	'''
-	M = len(df_pairs) # the total number of gene-gene transitions.
-	S = len(df_pairs[df_pairs['pairs']=='SGs']) # the number of same-strand gene-gene transitions.
-	O = M - S # the number of opposite-strand gene-gene transitions.
-	q = (M-2*O)/(M-O)
-	return q
+    '''
+    q is a probability that a pair of genes, located adjacent to each other on the same DNA strand, are part of an operon. 
+    '''
+    M = len(df_pairs) # the total number of gene-gene transitions.
+    S = len(df_pairs[df_pairs['pairs']=='SGs']) # the number of same-strand gene-gene transitions.
+    O = M - S # the number of opposite-strand gene-gene transitions.
+    q = (M-2*O)/(M-O)
+    return q
 
 def distPred(q, df_pairs, n_sample, smooth=1):
-	'''
-	generate the probability of each same-strand adjacent gene pair belonging to the same operon. 
-	'''
+    '''
+    generate the probability of each same-strand adjacent gene pair belonging to the same operon. 
+    '''
     ## sort the distances
-	df_igd = df_pairs[df_pairs['pairs']=='SGs'].sort_values("IGD")
-	igd_lst = df_igd.IGD.values
+    df_igd = df_pairs[df_pairs['pairs']=='SGs'].sort_values("IGD")
+    igd_lst = df_igd.IGD.values
     ## transform all intergenic distancesN_data = len(igd_lst)
-	# get the unique distance and its frequency
-	N_data = len(igd_lst)
-	val, counts = np.unique(igd_lst, return_counts=True)
-	# store the unique distance into a dict
-	dist_dict = {}
-	for i in range(len(val)):
-		dist_dict[val[i]] = counts[i]
-	Qd_igd = []
-	for v in igd_lst:
-		lt_v = [e for e in val if e <= v]
-		num = sum([dist_dict[e] for e in lt_v]) + 0.5
-		Qd_igd.append(num/(N_data + 1))
-	Qd_igd = np.array(Qd_igd).reshape(len(Qd_igd), 1)
-	## sampling the distance of non-operonic pairs by convergent and divergent gene pairs
-	np.random.seed(0)
-	CGDs = df_pairs[df_pairs['pairs']=='CGs'].IGD.values # the distances of convergent gene pairs
-	DGDs = df_pairs[df_pairs['pairs']=='DGs'].IGD.values # the distances of divergent gene pairs
-	# sample with repeats
-	new_CGDs = np.random.choice(CGDs, n_sample)
-	new_DGDs = np.random.choice(DGDs, n_sample)
-	acd = np.add(new_CGDs, new_DGDs)/2.0 # the average of convergent and divergent distances
-	Qd_acd = []
-	for v in acd:
-		lt_v = [e for e in val if e <= v]
-		num = sum([dist_dict[e] for e in lt_v]) + 0.5
-		Qd_acd.append(num/(N_data + 1))
-	Qd_acd = np.array(Qd_acd).reshape(len(Qd_acd), 1)
-	## estimate the probability of abjacent genes belonging to the same operon using KDE
-	bw0 = float("{:.2f}".format(100/N_data)) ## bandwidth
-	kde1 = KernelDensity(kernel="gaussian", bandwidth=bw0*2).fit(Qd_acd)
-	kde2 = KernelDensity(kernel="gaussian", bandwidth=bw0*2).fit(Qd_igd)
-	p1 = (1-q)*np.exp(kde1.score_samples(Qd_igd)) ## p(d|zij=0)
-	p2 = np.exp(kde2.score_samples(Qd_igd)) ## p(d)
-	p = []
-	for i in range(len(p1)):
-		pij = 1 - p1[i]/p2[i]
-		if pij <= 0:
-			pij = 10**-2
-		p.append(pij)
-	## smooth the prediction
-	p_final = []
-	if smooth:
-		p_min = min(p)
-		min_idx = p.index(p_min)
-		p_modify = [p[i] if i<=min_idx else p_min for i in range(len(p))]
-		p_final = p_modify
-	else:
-		p_final = p
-	## put the output into data frame
-	prob = pd.DataFrame()
-	prob['IGD'] = igd_lst
-	prob['p'] = p_final
-	prob['idx'] = df_igd.index.values
-	prob['nc'] = df_igd.nc.values
-	prob = prob.astype({'idx':'int','IGD':'int','p':'float'})
-	out = prob.sort_values('idx')
-	out.index = out.idx.values
-	return out
+    # get the unique distance and its frequency
+    N_data = len(igd_lst)
+    val, counts = np.unique(igd_lst, return_counts=True)
+    # store the unique distance into a dict
+    dist_dict = {}
+    for i in range(len(val)):
+        dist_dict[val[i]] = counts[i]
+    Qd_igd = []
+    for v in igd_lst:
+        lt_v = [e for e in val if e <= v]
+        num = sum([dist_dict[e] for e in lt_v]) + 0.5
+        Qd_igd.append(num/(N_data + 1))
+    Qd_igd = np.array(Qd_igd).reshape(len(Qd_igd), 1)
+    ## sampling the distance of non-operonic pairs by convergent and divergent gene pairs
+    np.random.seed(0)
+    CGDs = df_pairs[df_pairs['pairs']=='CGs'].IGD.values # the distances of convergent gene pairs
+    DGDs = df_pairs[df_pairs['pairs']=='DGs'].IGD.values # the distances of divergent gene pairs
+    # sample with repeats
+    new_CGDs = np.random.choice(CGDs, n_sample)
+    new_DGDs = np.random.choice(DGDs, n_sample)
+    acd = np.add(new_CGDs, new_DGDs)/2.0 # the average of convergent and divergent distances
+    Qd_acd = []
+    for v in acd:
+        lt_v = [e for e in val if e <= v]
+        num = sum([dist_dict[e] for e in lt_v]) + 0.5
+        Qd_acd.append(num/(N_data + 1))
+    Qd_acd = np.array(Qd_acd).reshape(len(Qd_acd), 1)
+    ## estimate the probability of abjacent genes belonging to the same operon using KDE
+    bw0 = float("{:.2f}".format(100/N_data)) ## bandwidth
+    kde1 = KernelDensity(kernel="gaussian", bandwidth=bw0*2).fit(Qd_acd)
+    kde2 = KernelDensity(kernel="gaussian", bandwidth=bw0*2).fit(Qd_igd)
+    p1 = (1-q)*np.exp(kde1.score_samples(Qd_igd)) ## p(d|zij=0)
+    p2 = np.exp(kde2.score_samples(Qd_igd)) ## p(d)
+    p = []
+    for i in range(len(p1)):
+        pij = 1 - p1[i]/p2[i]
+        if pij <= 0:
+            pij = 10**-2
+        p.append(pij)
+    ## smooth the prediction
+    p_final = []
+    if smooth:
+        p_min = min(p)
+        min_idx = p.index(p_min)
+        p_modify = [p[i] if i<=min_idx else p_min for i in range(len(p))]
+        p_final = p_modify
+    else:
+        p_final = p
+    ## put the output into data frame
+    prob = pd.DataFrame()
+    prob['IGD'] = igd_lst
+    prob['p'] = p_final
+    prob['idx'] = df_igd.index.values
+    prob['nc'] = df_igd.nc.values
+    prob = prob.astype({'idx':'int','IGD':'int','p':'float'})
+    out = prob.sort_values('idx')
+    out.index = out.idx.values
+    return out
 
-def gene_prediction(inputfile, path=None):
-	'''
-	predict .gff and .faa files by Prodigal
-	'''
-	head, tail = os.path.split(inputfile)
-	qname = tail.replace('.fna','')
-	gff_file = f"{path}/{qname}.gff"
-	faa_file = f"{path}/{qname}.faa"
+def gene_prediction(inputfile, path=None, bin_dir=None):
+    '''
+    predict .gff and .faa files by Prodigal
+    path: output path
+    bin_dir: prodigal located
+    '''
+    head, tail = os.path.split(inputfile)
+    qname = tail.replace('.fna','')
+    gff_file = f"{path}/{qname}.gff"
+    faa_file = f"{path}/{qname}.faa"
 
-	os.system(f"prodigal -i {inputfile} -f gff -o {gff_file} -a {faa_file}")
-	return faa_file
+    os.system(f"{bin_dir}/prodigal -i {inputfile} -f gff -o {gff_file} -a {faa_file}")
+    return faa_file
 
 def collect_prediction_perMethod(pred_file):
-	## pred_file: prediction of all abjacent gene pairs including the same-strand and opposite-strand pairs
-	with open(pred_file) as infile:
-		lines = infile.read().splitlines()
-	tar_lines = [l.split('\t') for l in lines if re.match(r'^\d+|Gene', l)]
-	headers = tar_lines[0]
-	df_pred = pd.DataFrame(tar_lines[1:])
-	df_pred.columns = headers
-	## remove the opposite-strand pairs
-	col = df_pred.columns[-1]
-	df_pred = df_pred[df_pred[col].str.strip().astype(bool)]
-	return df_pred
+    ## pred_file: prediction of all abjacent gene pairs including the same-strand and opposite-strand pairs
+    with open(pred_file) as infile:
+        lines = infile.read().splitlines()
+    tar_lines = [l.split('\t') for l in lines if re.match(r'^\d+|Gene', l)]
+    headers = tar_lines[0]
+    df_pred = pd.DataFrame(tar_lines[1:])
+    df_pred.columns = headers
+    ## remove the opposite-strand pairs
+    col = df_pred.columns[-1]
+    df_pred = df_pred[df_pred[col].str.strip().astype(bool)]
+    return df_pred
 
 def pairs2operon(pred_file, d_source='Prediction', cutoff=0.5):
-	"""
-	extract operons based on the predictive operonic pairs
-	pred_file: the prediction file from UniOP
-	d_source: the probability predicted using different data source, such as distance, conservation, and so on
-	ver_dict: the ground truth extract from the annotation file
-	"""
-	df_pred = collect_prediction_perMethod(pred_file) ## all same-strand adjacent pairs
-	df_pred[['Gene A','Gene B']] = df_pred[['Gene A','Gene B']].astype('int')
-	rcols = [col for col in df_pred.columns if col not in ['Gene A','Gene B','']]
-	df_pred[rcols] = df_pred[rcols].astype('float')
-	df_pred['ex_GeneB'] = df_pred['Gene B'].shift(1) # the last gene of the last pair
-	## the index of 'Gene A', 'Gene B' starts from 1 not 0
-	## the index in df_gff starts from 0
-	operons = {}
-	n = 1
-	flag = 0  ## 0: continue the same operon, 1: start a new operon
-	for i in df_pred.index:
-		if df_pred.at[i,f'{d_source}'] >= cutoff: # belong to the same operon
-			if flag == 1: # a new operon and the last pair is non-operonic pair
-				n += 1
-				operons[n] = []
-				operons[n].extend([df_pred.at[i,'Gene A'],df_pred.at[i,'Gene B']])
-			elif n not in operons: # a new operon and this is the first pair belonging to the same operon
-				operons[n] = []
-				operons[n].extend([df_pred.at[i,'Gene A'],df_pred.at[i,'Gene B']])
-			elif df_pred.at[i,'Gene A'] != df_pred.at[i,'ex_GeneB']: # not adjacent genes, new operon
-				n += 1
-				operons[n] = []
-				operons[n].extend([df_pred.at[i,'Gene A'],df_pred.at[i,'Gene B']])
-			else: # the same operon
-				operons[n].append(df_pred.at[i,'Gene B'])
-			flag = 0
-		else:
-			flag = 1 # non-operonic
-	df_operons = pd.DataFrame(operons.items(),columns=['idx_op','idx_genes'])
-	df_operons = df_operons.drop(columns=['idx_op'])
-	df_operons['idx_op'] = df_operons.index
-	
-	return df_operons
+    """
+    extract operons based on the predictive operonic pairs
+    pred_file: the prediction file from UniOP
+    d_source: the probability predicted using different data source, such as distance, conservation, and so on
+    ver_dict: the ground truth extract from the annotation file
+    """
+    df_pred = collect_prediction_perMethod(pred_file) ## all same-strand adjacent pairs
+    df_pred[['Gene A','Gene B']] = df_pred[['Gene A','Gene B']].astype('int')
+    rcols = [col for col in df_pred.columns if col not in ['Gene A','Gene B','']]
+    df_pred[rcols] = df_pred[rcols].astype('float')
+    df_pred['ex_GeneB'] = df_pred['Gene B'].shift(1) # the last gene of the last pair
+    ## the index of 'Gene A', 'Gene B' starts from 1 not 0
+    ## the index in df_gff starts from 0
+    operons = {}
+    n = 1
+    flag = 0  ## 0: continue the same operon, 1: start a new operon
+    for i in df_pred.index:
+        if df_pred.at[i,f'{d_source}'] >= cutoff: # belong to the same operon
+            if flag == 1: # a new operon and the last pair is non-operonic pair
+                n += 1
+                operons[n] = []
+                operons[n].extend([df_pred.at[i,'Gene A'],df_pred.at[i,'Gene B']])
+            elif n not in operons: # a new operon and this is the first pair belonging to the same operon
+                operons[n] = []
+                operons[n].extend([df_pred.at[i,'Gene A'],df_pred.at[i,'Gene B']])
+            elif df_pred.at[i,'Gene A'] != df_pred.at[i,'ex_GeneB']: # not adjacent genes, new operon
+                n += 1
+                operons[n] = []
+                operons[n].extend([df_pred.at[i,'Gene A'],df_pred.at[i,'Gene B']])
+            else: # the same operon
+                operons[n].append(df_pred.at[i,'Gene B'])
+            flag = 0
+        else:
+            flag = 1 # non-operonic
+    df_operons = pd.DataFrame(operons.items(),columns=['idx_op','idx_genes'])
+    df_operons = df_operons.drop(columns=['idx_op'])
+    df_operons['idx_op'] = df_operons.index
+    
+    return df_operons
 
-def output_distPred(inputfile, n_sample, path=None, operon_flag=False):
-	'''
-	with a prediction file in the format Gene A\tGene B\tPrediction
-	'''
-	df_cds = read_faa(inputfile)
-	df_pairs = extract_pairs_multicontigs(df_cds)
-	q = estimate_q(df_pairs)
-	preds = distPred(q, df_pairs, n_sample)
-	
-	head, tail = os.path.split(inputfile)
-	#outfile = f"{path}/{tail.replace('.faa','.dst.pred')}"
-	outfile = f"{path}/uniop.pred"
-	with open(outfile, 'w') as fout:
-		fout.write(f"operon prediction scores\n")
-		fout.write(f"Gene A\tGene B\tPrediction\n")
-		for i in df_cds.index:
-			if i == df_cds.index[-1]:
-				continue
-			row = preds[preds.index == i]
-			if len(row) > 0:
-				prob = "{:.6f}".format(preds.at[i,'p'])
-			else:
-				prob = ''
-			fout.write(f"{i+1}\t{i+2}\t{prob.ljust(9)}\n")
-			
-	if operon_flag:
-		df_operon = pairs2operon(outfile)
-		outfile_op = f"{path}/uniop.operon"
-		df_operon.to_csv(outfile_op, index=False)
+def output_distPred(inputfile, n_sample, path=None, operon_flag=False, file_type='ncbi_gff'):
+    '''
+    with a prediction file in the format Gene A\tGene B\tPrediction
+    '''
+    if file_type == 'ncbi_gff':
+        df_cds = read_gff(inputfile, flag=['gene','pseudogene'])
+    elif file_type == 'prodigal_gff':
+        df_cds = read_gff(inputfile, flag=['CDS'])
+    elif file_type == 'prodigal_faa':
+        df_cds = read_faa(inputfile)
+    elif file_type == 'ncbi_faa':
+        df_cds = read_faa(inputfile)
+    
+    df_pairs = extract_pairs_multicontigs(df_cds)
+    q = estimate_q(df_pairs)
+    preds = distPred(q, df_pairs, n_sample)
+    
+    head, tail = os.path.split(inputfile)
+    #outfile = f"{path}/{tail.replace('.faa','.dst.pred')}"
+    outfile = f"{path}/uniop.pred"
+    with open(outfile, 'w') as fout:
+        fout.write(f"operon prediction scores\n")
+        fout.write(f"Gene A\tGene B\tPrediction\n")
+        for i in df_cds.index:
+            if i == df_cds.index[-1]:
+                continue
+            row = preds[preds.index == i]
+            if len(row) > 0:
+                prob = "{:.6f}".format(preds.at[i,'p'])
+            else:
+                prob = ''
+            fout.write(f"{i+1}\t{i+2}\t{prob.ljust(9)}\n")
+            
+    if operon_flag:
+        df_operon = pairs2operon(outfile)
+        outfile_op = f"{path}/uniop.operon"
+        df_operon.to_csv(outfile_op, index=False)
 
 def main():
-	parser = create_parser()
-	args = parser.parse_args(args=None if sys.argv[1:] else ['--help'])
-	
-	
-	start = datetime.now()
-	if args.faa_file:
-		faa_file = args.faa_file
-		if args.path:
-			data_path = args.path
-		else:
-			head, tail = os.path.split(faa_file) 
-			data_path = head	
-	else:
-		if args.fna_file:
-			fna_file = args.fna_file
-			if args.path:
-				data_path = args.path
-			else:
-				# the input path is used as the output path is not specified
-				head, tail = os.path.split(fna_file) 
-				data_path = head
-			start_prod = datetime.now()
-			faa_file = gene_prediction(fna_file, path=data_path)
-			print(f"Time for gene prediction by Prodigal: {datetime.now() - start_prod}")
-		else:
-			raise ValueError('Please specify the input file, either faa file or fna file')
-	# predict operons
-	if args.n_sample:
-		n_sample = args.n_sample
-	else:
-		n_sample = 10**4
-	output_distPred(faa_file, n_sample, path=data_path, operon_flag=args.operon_flag)
-	print(f"Time for UniOP prediction: {datetime.now() - start}")
-	
-	
+    parser = create_parser()
+    args = parser.parse_args(args=None if sys.argv[1:] else ['--help'])
+    
+    start = datetime.now()
+    
+    #=========== output path =========== 
+    if args.path:
+        data_path = args.path
+    else:
+        if args.fna_file:
+            data_path = os.path.dirname(args.fna_file)
+        elif args.faa_file:
+            data_path = os.path.dirname(args.faa_file)
+        elif args.gff_file:
+            data_path = os.path.dirname(args.gff_file)
+        else:
+            data_path = os.getcwd()
+
+    #=========== process input =========== 
+    if args.fna_file:
+        if not args.bin_dir:
+            parser.error(
+                "Prodigal not found."
+                "Please specify Prodigal installation directory with --bin_dir,"
+                "or ensure Prodigal is installed and accessible in you Path.")
+            
+        print(f"Input: Genomic sequence ({args.fna_file})")
+        start_prod = datetime.now()
+        input_file = gene_prediction(args.fna_file, path=data_path, bin_dir=args.bin_dir)
+        print(f"Time for gene prediction by Prodigal: {datetime.now() - start_prod}")
+        file_type = 'prodigal_faa'
+    elif args.faa_file:
+        if not args.faa_source:
+            parser.error(
+                "When use -a (FAA file), --faa_source is required.\n"
+                "Please specify either 'pridigal_faa' or 'ncbi_faa'.\n"
+                "Example: -faa_source prodigal_faa")
+        print(f"Input: FAA file ({args.faa_file}) [source: {args.faa_source}]")
+        input_file = args.faa_file
+        file_type = args.faa_source
+    elif args.gff_file:
+        if not args.gff_source:
+            parser.error(
+                "When use -f (GFF file), --gff_source is required.\n"
+                "Please specify either 'pridigal_gff' or 'ncbi_gff'.\n"
+                "Example: -gff_source prodigal_gff")
+        print(f"Input: GFF file ({args.gff_file}) [source: {args.gff_source}]")
+        input_file = args.gff_file
+        file_type = args.gff_source
+    else:
+        raise ValueError('Please specify one input file: -i (FNA), -a (FAA), or -f (GFF).')
+
+    #=========== run  UniOP =========== 
+    n_sample = args.n_sample if args.n_sample is not None else 10000 
+    output_distPred(
+        input_file, 
+        n_sample, 
+        path=data_path, 
+        operon_flag=not args.no_operon_assembly,
+        file_type=file_type
+    )
+    print(f"total file: {datetime.now() - start}")
 
 if __name__ == '__main__':
-	main()
+    main()
