@@ -4,16 +4,26 @@ UniOP was implemented in Python 3.11.5 and runs on MacOS or Linux systems.
 ```
 
 ## Overview
-**UniOP** is a fast, accurate and unbiased computational method for operon prediction, independent of experimental or functional information. It takes as input prokaryotic genomes or metagenome-assembled genomes (MAGs).
+Operon prediction remains challenging for poorly characterized prokaryotic genomes, particularly for metagenome-assembled genomes (MAGs) that lack functional annotations and evolutionary relatives. Existing methods typically rely on supervised training, comparative genomics, or external databases, limiting their applicability to such data.
+
+**UniOP** address this gap by inferring operon structure directly from intergenic distance distributions within the target genome. It requires no external information, no training data, and no species-specific assumptions. 
+
+UniOP takes as input either a nucleotide genome sequence (FASTA), a protein sequence file (FAA), or a gene annotation file (GFF), and outputs pairwise operon probabilities and assembled operon units. The tool is implemented in Python and runs on macOS or Linux systems.
+
 ![](figures/Graphical_abstract.png)
 
 ## How to use UniOP
 ### Dependencies
-**UniOP** requires:
+**UniOP** requires the following:
 ```
-* Python (The results in the paper were obtained by 3.11.5)
+* Python (version 3.11.5 recommended; the results in the paper were obtained with this version)
 * Python libraries: argparse, pandas, numpy, scikit-learn, datetime
-* Prodigal [conda install -c bioconda prodigal]
+* Prodigal (required only when using nucleotide FASTA as input)
+
+You can install Prodigal via:
+
+``` bash
+conda install -c bioconda prodigal
 ```
 The starting point should be either a FASTA file of the nucleotide genome sequence (`.fna`) or protein-coding sequences (**CDS**) (`.faa`). This is typically achieved by running a gene prediction program such as [Prodigal](https://github.com/hyattpd/Prodigal).
 
