@@ -55,6 +55,7 @@ python UniOP -f ../demo/GCF_000005845.2.gff --gff_source ncbi_fgff   # for NCBI 
 This will output:
 - `uniop.pred`  -pairwise operon probabilities for all adjacent same-strand gene pairs.
 - `uniop.operon` -assembled operon units (if not disabled with `--no_operon_assembly`)
+- `uniop.genes`  -the gene behind each number in `uniop.pred` and `uniop.operon`: sequence, start, end, strand, ID and locus tag (from the GFF attributes, or the protein name for FAA input).
 
 By default, output files are written to the same directory as the input file. You can specify an output folder with `-t`:
 

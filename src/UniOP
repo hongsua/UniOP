@@ -87,8 +87,10 @@ def read_faa(faa):
     lines = reader.readlines()
     lines = [l.split('#') for l in lines if l.startswith('>')]
     df = pd.DataFrame(lines,columns=['nc','start','stop','strand','attribute'])
+    df['id'] = df['nc'].str[1:].str.split().str[0] ## the protein name, first word of the header
+    df['locus_tag'] = ''
     df['nc'] = df['nc'].replace(r'>|_\d+\s+','',regex=True) ## extract the contig name. This works for complete genomes and metagenomes
-    df = df[['nc','start','stop','strand']].astype({'nc':'str','start':'int','stop':'int','strand':'int'})
+    df = df[['nc','start','stop','strand','id','locus_tag']].astype({'nc':'str','start':'int','stop':'int','strand':'int'})
     df['strand'] = df['strand'].replace(1,'+',regex=True)
     df['strand'] = df['strand'].replace(-1,'-',regex=True)
     df['strand'] = df['strand'].astype('str')
@@ -99,18 +101,29 @@ def read_gff(gff, flag=['gene','pseudogene']):
     For gff sourced from NCBI database, genes in ['gene', 'pseudogene'] are recorded.
     '''
     reader = open(gff,'r')
-    lines = reader.readlines()
-    lines = [l.split('\t') for l in lines if not l.startswith('#') and len(l)>0]
-    lines = [[int(l[3]), l] for l in lines if l[2] in flag]
-    ## reorder genes according to their starting position
+    lines = []
+    for l in reader:
+        if l.startswith('##FASTA'): ## the rest of the file is sequence
+            break
+        if not l.startswith('#'):
+            lines.append(l.split('\t'))
+    lines = [l for l in lines if len(l)>=9 and l[2] in flag]
+    ## reorder genes by sequence (in order of first appearance), then by starting position
     ## regardless of the strand, the start point is lower than the end point.
+    seq_order = {}
+    for l in lines:
+        seq_order.setdefault(l[0], len(seq_order))
+    lines = [[(seq_order[l[0]], int(l[3])), l] for l in lines]
     sort_lines = sorted(lines, key=lambda x:x[0])
     df = pd.DataFrame([sort_lines[i][1] for i in range(len(sort_lines))])
     df.columns = [str(i) for i in df.columns]
     df = df.rename(columns={'0':'nc','2':'feature','3':'start','4':'stop','6':'strand','8':'header'})
     df = df.astype({'feature':'str','start':'int', 'stop':'int', 'strand':'str'})
-    
-    return df[['nc','start','stop','strand']]
+    attributes = df['header'].str.strip().map(lambda a: dict(kv.strip().split('=',1) for kv in a.split(';') if '=' in kv))
+    df['id'] = attributes.map(lambda a: a.get('ID',''))
+    df['locus_tag'] = attributes.map(lambda a: a.get('locus_tag',''))
+
+    return df[['nc','start','stop','strand','id','locus_tag']]
 
 def extract_pairs_singlecontig(df_GFF):
     '''
@@ -292,6 +305,7 @@ def pairs2operon(pred_file, d_source='Prediction', cutoff=0.5):
             flag = 0
         else:
             flag = 1 # non-operonic
+    operons = {n: [int(g) for g in genes] for n, genes in operons.items()} ## plain integers
     df_operons = pd.DataFrame(operons.items(),columns=['idx_op','idx_genes'])
     df_operons = df_operons.drop(columns=['idx_op'])
     df_operons['idx_op'] = df_operons.index
@@ -312,6 +326,12 @@ def output_distPred(inputfile, n_sample, path=None, operon_flag=False, file_type
         df_cds = read_faa(inputfile)
     
     df_pairs = extract_pairs_multicontigs(df_cds)
+    n_cgs = sum(df_pairs['pairs']=='CGs')
+    n_dgs = sum(df_pairs['pairs']=='DGs')
+    if n_cgs == 0 or n_dgs == 0:
+        sys.exit(f"Error: found {n_cgs} convergent and {n_dgs} divergent adjacent gene pairs within sequences. "
+                 "UniOP needs both to estimate the intergenic distances of non-operonic pairs, "
+                 "so it cannot predict operons for this genome.")
     q = estimate_q(df_pairs)
     preds = distPred(q, df_pairs, n_sample)
     
@@ -330,7 +350,12 @@ def output_distPred(inputfile, n_sample, path=None, operon_flag=False, file_type
             else:
                 prob = ''
             fout.write(f"{i+1}\t{i+2}\t{prob.ljust(9)}\n")
-            
+
+    ## the gene behind each number in uniop.pred and uniop.operon
+    df_genes = df_cds.rename(columns={'nc':'sequence','stop':'end','id':'ID'})
+    df_genes.insert(0, 'gene', df_genes.index + 1)
+    df_genes.to_csv(f"{path}/uniop.genes", sep='\t', index=False)
+
     if operon_flag:
         df_operon = pairs2operon(outfile)
         outfile_op = f"{path}/uniop.operon"
